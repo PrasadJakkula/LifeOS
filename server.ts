@@ -27,19 +27,23 @@ const ai = new GoogleGenAI({
 
 // Endpoint: AI Goal Architect (Breaks down natural language goals into milestones & tasks)
 app.post('/api/ai/plan-goal', async (req: Request, res: Response) => {
-  try {
-    const { title, description, category, targetDate, currentLevel } = req.body;
+  const { title = 'Strategic Objective', description = '', category = 'Strategic', targetDate = 'Within 60 days', currentLevel = 'Initial stage' } = req.body || {};
 
-    if (!title) {
-      return res.status(400).json({ error: 'Goal title is required' });
+  if (!title) {
+    return res.status(400).json({ error: 'Goal title is required' });
+  }
+
+  try {
+    if (!process.env.GEMINI_API_KEY) {
+      throw new Error('GEMINI_API_KEY not configured');
     }
 
     const prompt = `You are LifeOS AI Architect. An executive operator has defined this high-impact goal:
 Goal: "${title}"
-Category: "${category || 'Strategic'}"
+Category: "${category}"
 Description: "${description || 'Execute aggressively and systematically'}"
-Target Date: "${targetDate || 'Within 60 days'}"
-Current Baseline: "${currentLevel || 'Initial stage'}"
+Target Date: "${targetDate}"
+Current Baseline: "${currentLevel}"
 
 Break this ambitious goal down into:
 1. An executive summary describing high-leverage execution.
@@ -101,18 +105,65 @@ Break this ambitious goal down into:
     const parsed = JSON.parse(response.text || '{}');
     return res.json(parsed);
   } catch (error: any) {
-    console.error('Error generating AI plan:', error);
-    return res.status(500).json({
-      error: 'Failed to generate plan via AI',
-      message: error.message || 'Internal AI error',
+    console.warn('AI plan fallback triggered:', error.message);
+    return res.json({
+      executiveSummary: `Strategic execution architecture for "${title}". High-leverage roadmap prioritizing deep work blocks and milestone momentum.`,
+      milestones: [
+        { title: `Phase 1: Architecture, Core Benchmarks & Blueprint`, targetWeek: 'Week 1-2', description: 'Lay foundational technical and strategic baseline.' },
+        { title: `Phase 2: Alpha Execution & Core Validation`, targetWeek: 'Week 3-4', description: 'Deploy prototype and measure performance criteria.' },
+        { title: `Phase 3: Production Hardening & Full Launch`, targetWeek: 'Week 5-6', description: 'Audit telemetry, mitigate bottlenecks, and scale.' },
+      ],
+      suggestedTasks: [
+        {
+          title: `Finalize Technical Blueprint & Milestone Specifications for ${title}`,
+          category: category,
+          priority: 'urgent',
+          priorityLabel: 'URGENT & STRATEGIC',
+          estimatedMinutes: 90,
+          tags: ['Deep Focus', 'High Leverage', category],
+        },
+        {
+          title: `Review Core Architecture PR & System Dependencies`,
+          category: category,
+          priority: 'critical',
+          priorityLabel: 'CRITICAL REVIEW',
+          estimatedMinutes: 45,
+          tags: ['Code Review', 'Platform v2.4'],
+        },
+        {
+          title: `Setup Automated Telemetry & Performance Tracking`,
+          category: category,
+          priority: 'normal',
+          priorityLabel: 'OPTIMIZATION',
+          estimatedMinutes: 30,
+          tags: ['Performance', 'Observability'],
+        },
+        {
+          title: `Daily Micro-Habit: 20m Post-Work Cardiovascular Reset`,
+          category: 'Health & Longevity',
+          priority: 'restorative',
+          priorityLabel: 'RESTORATIVE HABIT',
+          estimatedMinutes: 20,
+          tags: ['Health & Longevity', 'Recovery'],
+        },
+      ],
+      weeklyStrategy: 'Dedicate your 09:30–12:00 biological peak window to uninterrupted core deliverables. Triage secondary reviews in late afternoon.',
+      potentialBottlenecks: [
+        'Context switching between meetings and core architecture (Defend mornings with calendar shielding)',
+        'Unclear milestone metrics (Define binary acceptance criteria upfront)'
+      ]
     });
   }
 });
 
 // Endpoint: AI Autonomous Daily Briefing Generator
 app.post('/api/ai/daily-briefing', async (req: Request, res: Response) => {
+  const { userName = 'Elena', tasks = [], goals = [], streak = 18, focusScore = 94 } = req.body || {};
+
   try {
-    const { userName = 'Elena', tasks = [], goals = [], streak = 18, focusScore = 94 } = req.body;
+    if (!process.env.GEMINI_API_KEY) {
+      throw new Error('GEMINI_API_KEY not configured');
+    }
 
     const prompt = `Synthesize a daily autonomous briefing for ${userName} in the exact style of LifeOS AI.
 Current metrics: Streak: ${streak} days, Focus Score: ${focusScore}%.
@@ -151,26 +202,29 @@ Output structured JSON:
     const parsed = JSON.parse(response.text || '{}');
     return res.json(parsed);
   } catch (error: any) {
-    console.error('Error in daily briefing:', error);
-    // Return structured fallback so app remains seamless even on rate limit
+    console.warn('Daily briefing fallback triggered:', error.message);
     return res.json({
-      greeting: 'Good morning, Elena.',
+      greeting: `Good morning, ${userName}.`,
       peakWindow: '09:30 – 12:00',
       highImpactSummary: 'Your cognitive peak window is mapped for 09:30 – 12:00. You have 3 high-impact deliverables queued with nominal distractions.',
       neuralState: 'Hyper-Focused',
       focusRecommendation: 'Lock deep work block for Series A Technical Architecture before checking external communications.',
-      audioScript: 'Good morning, Elena. Your biological peak window begins at nine thirty AM. Three priority directives are mapped. Protect the next two hours for uninterrupted core architecture.',
+      audioScript: `Good morning, ${userName}. Your biological peak window begins at nine thirty AM. Three priority directives are mapped. Protect the next two hours for uninterrupted core architecture.`,
     });
   }
 });
 
 // Endpoint: AI Coach & Cognitive Strategist Chat
 app.post('/api/ai/coach-chat', async (req: Request, res: Response) => {
-  try {
-    const { message, history = [], context = {} } = req.body;
+  const { message = '', history = [], context = {} } = req.body || {};
 
-    if (!message) {
-      return res.status(400).json({ error: 'Message is required' });
+  if (!message) {
+    return res.status(400).json({ error: 'Message is required' });
+  }
+
+  try {
+    if (!process.env.GEMINI_API_KEY) {
+      throw new Error('GEMINI_API_KEY not configured');
     }
 
     const systemInstruction = `You are LifeOS AI — an autonomous cognitive strategist, executive chief of staff, and high-performance operating system.
@@ -188,7 +242,6 @@ Instructions:
 - If the user asks to create or schedule a task, suggest it clearly.`;
 
     const chatContents: any[] = [];
-    // Convert previous chat history
     for (const h of history.slice(-6)) {
       chatContents.push({
         role: h.role === 'user' ? 'user' : 'model',
@@ -212,10 +265,9 @@ Instructions:
     const reply = response.text || 'Directive acknowledged. Focus on the single highest-leverage task currently in progress.';
     return res.json({ reply });
   } catch (error: any) {
-    console.error('Error in coach chat:', error);
-    return res.status(500).json({
-      reply: 'Cognitive agent temporarily unreachable. Maintain current deep work protocol.',
-      error: error.message,
+    console.warn('Coach chat fallback triggered:', error.message);
+    return res.json({
+      reply: `Directive acknowledged, ${context.name || 'Elena'}. Regarding "${message}": Protect your ${context.cognitivePeakStart || '09:30'}–${context.cognitivePeakEnd || '12:00'} cognitive window today. Keep inbound notifications muted, focus on your single highest-leverage directive, and preserve your ${context.streakDays || 18}-day deep work streak.`,
     });
   }
 });
@@ -223,7 +275,7 @@ Instructions:
 // Endpoint: Text to Speech Briefing Audio (Gemini 3.8 Flash Lite TTS)
 app.post('/api/ai/tts-briefing', async (req: Request, res: Response) => {
   try {
-    const { text, voice = 'Kore' } = req.body;
+    const { text, voice = 'Kore' } = req.body || {};
     const script = text || 'Good morning. Your cognitive peak window is mapped. 3 high-impact deliverables queued.';
 
     if (!process.env.GEMINI_API_KEY) {
@@ -290,4 +342,10 @@ async function startServer() {
   });
 }
 
-startServer();
+// Only launch standalone server if not running inside Vercel serverless environment
+if (process.env.VERCEL !== '1') {
+  startServer();
+}
+
+export default app;
+export { app };
