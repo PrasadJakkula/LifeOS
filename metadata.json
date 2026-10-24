@@ -1,0 +1,6 @@
+{
+  "name": "LifeOS AI — Turn Goals Into Action",
+  "description": "Intelligent command center and AI planning assistant that turns ambitious goals into structured action, deep focus blocks, and measurable productivity.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
